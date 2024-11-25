@@ -1,0 +1,37 @@
+---
+title: 'Storyboard Helper'
+desc: 'Storyboard 사용시 코드를 간결하게 만드는 프레임워크'
+startMonth: '2024-11'
+endMonth: '2024-11'
+tags: '개인프로젝트, iOS, Swift, OpenSource'
+gitRepoUrl: 'https://github.com/manaes'
+---
+
+### 주요 기능
+ 
+- 스토리보드 사용시, 코드를 간결하게 만들어줌
+- 별도의 설정없이, 최초 init 호출만 하면됨
+- 많은 스토리보드 파일을 사용하는 경우, 더욱 편리함
+- SPM을 통해 배포
+
+### Tech Stack (iOS)
+
+- Swift, SPM
+
+### 이유
+
+- 스토리보드 하나에 많은 뷰가 들어가면, 개발 속도 및 관리 측면에서 어려움이 있음
+- 따라서, 각 목적에 따라 많은 스토리보드 파일을 생성하게 되는데...
+- 어느 스토리보드 파일에 뷰가 있더라?
+
+### 목표
+
+- 초기화 함수만 호출하면 사용 가능해야함
+- 각 스토리보드는 id를 통해서 구분하며, id만 사용해서 객체를 instance 할 수 있어야함
+- 잘못된 객체 / 설정시, build 단계에서 에러가 발생해야함
+
+> xcode 빌드시, 프로젝트 모든 storyboard 파일이름을 가져오고,
+> id instance시, 스토리보드 - 뷰가 존재하는지 체크 후 리턴해줌
+
+
+[프로젝트 링크](https://github.com/manaes)

@@ -1,0 +1,46 @@
+---
+title: '후후'
+desc: 'Storyboard 사용시 코드를 간결하게 만드는 프레임워크'
+startMonth: '2017-10'
+endMonth: '2019-05'
+tags: '개인프로젝트, iOS, Swift'
+gitRepoUrl: 'https://github.com/manaes'
+---
+
+### Role
+
+- [후후 iOS 앱](https://whowho.vp.co.kr/ko/service/whowho/) 개발팀 리드 개발자
+- iOS 업데이트로 인해, 신규 적용 가능한 기능 검토 및 서비스 적용
+- 레거시 코드 제거 및 리팩토링 (objective-c -> Rxswift로 전환)
+- 내부 CI/CD 구축 (gitlab + jenkins + xcode server)
+- DB 최적화를 통한, 앱 동작 속도 및 안정성 향상
+
+### Tech Stack (iOS)
+
+- Swift, Storybard, Coredata, Realm
+
+### 주요 기능
+ 
+- 전화번호부 관리 (초성/단축번호/그룹화)
+- 자동 스팸전화 차단 및 라벨링
+- 스팸 문자 차단 및 신고
+- iOS 위젯 (단축번호/검색/스팸지수 등) 제공
+
+### 스팸전화 차단 및 분류
+
+- Callkit - [CXCallDirectoryExtension](https://developer.apple.com/documentation/sms_and_call_reporting/ilmessagefilterextension) 사용
+- 스팜일 가능성이 높은 경우, 전화 자동 차단
+- 스팸 의심 번호일 경우, 전화수신시 스팸의심 내용을 같이 노출해줌
+
+#### DB관련 최적화 작업
+
+- 앱 실행 / 백그라운드 페치 등, 전화번호 데이터는 수시로 변화함 (약 30만개)
+- Extension과 같이 사용해야함으로, 로컬상에 DB를 동기화 후 사용
+- 안정적인 동기화 및 사용을 위해, Coredata/Realm을 병행해서 사용
+> Extension의 경우, 최대메모리 7Mb 내외에서 쿼리를 사용해야함으로, 최적화된 데이터 추출 -> Realm을 사용
+
+### 스팸문자 차단
+
+- [ILMessageFilterExtension](https://developer.apple.com/documentation/sms_and_call_reporting/ilmessagefilterextension) 사용
+- 신규 문자 도착시, 내부 및 서버 판별 후 시스템에 반영
+- Exntension에 대응하는 API 서버가 무조건 존재해야함
