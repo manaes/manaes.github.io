@@ -67,7 +67,7 @@ const sortPostList = (PostList: Post[]) => {
 export const getPostList = async (category?: string): Promise<Post[]> => {
   const postPaths = getPostPaths(category);
   const postList = await Promise.all(postPaths.map((postPath) => parsePost(postPath)));
-  return postList;
+  return postList.filter(post => !post.title.includes("[draft]"));
 };
 
 export const getSortedPostList = async (category?: string) => {
