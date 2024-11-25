@@ -1,0 +1,27 @@
+name: develop CD
+
+on:
+  push:
+    branches: ['main']
+
+concurrency:
+  group: '${{ github.workflow }} @ ${{ github.event.pull_request.head.label || github.head_ref || github.ref }}'
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Git Checkout
+        uses: actions/checkout@v4.1.1
+
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 19
+
+      - name: Install dependencies
+        run: yarn install
+
+      - name: Build next app
+        run: yarn build
