@@ -1,0 +1,147 @@
+---
+title:  "Storyboard Helper"
+date: 2024-11-25 16:30
+desc: 이젠 슬슬 보내줘야지..
+thumbnail: /posts/storyboardHelper/thumbnail.png
+---
+
+![이제 슬슬 보내줘야하나](/posts/storyboardHelper/thumbnail.png)
+
+## 들어가며
+
+아주 예전에, 스토리보드가 막 생기기 시작했을때부터 만들어서 사용하던 [프로젝트](https://github.com/manaes/StoryboardUtil)가 있었다.
+대충 만들어서 쓰다가, 팀 내부에 공유할 일이 있어서 아주 약간의 Document + SPM으로 배포했다.
+원래부터 공유용이 아니다보니, 여러가지 기능이 잡다하게 섞여어 이번 기회에 좀 정리하려고 한다.
+
+---
+
+## Storyboard
+
+아직은 xib가 대세일때, 여러개의 뷰를 한꺼번에 보여주며, 동작 정의도 가능한 `UIStoryboard`는 획기적이라 생각했다.
+
+하지만, 사용하다보니 다음의 문제점들이 발생했는데...
+
+1. 무거움
+많은 뷰가 스토리보드 파일에 들어가있는 경우, 스토리보드 클릭하면 엄청난 렉이 발생. 열리기전까지 crash가 발생하지 않기를 빌어야했다.
+
+2. 복잡성
+autolayout을 정의할때, 자동조건으로 생성하거나, 중복되는 조건을 넣는 경우가 발생하는데, 이 경우 해당뷰를 찾아서 최적화하기가 너무 힘들었다.
+
+3. 소스파일 변경
+단순히 뷰만 보더라도, 개발자들의 pc 셋팅에 따라 스토리보드 파일 내용이 변경되는 경우가 많았다.
+스토리보드내 1개 뷰만 수정했는데, 다른 뷰도 같이 수정되고, 이 파일을 다른 사람이 열먼 또 수정되는...
+악순환이 반복되는 문제가 발생한다.
+
+기타 여러가지 문제점들이 있지만, 대체제로 나온 `swiftUI`로 전환이 쉽지 않아서
+기존 프로젝트가 존재하는 경우 스토리보드를 사용하는 경우가 대부분이었다.
+
+`swiftUI`를 추가하기 어려웠던 이유를 생각나는대로 적어보면,
+
+1. 호환성 : 일부 충돌하는 framework를 사용중이거나, 시뮬레이터 호환성이 없는 경우 동작시 에러 발생
+
+2. 복잡성 : SwiftUI는 어렵지 않으나, 기존 프로젝트에서 사용하려면 `HostingViewController`를 사용해야함. 
+이때, 기존 구조 유지기 어려워서 관련 로직을 다 수정하거나, 이 부분만을 위한 중복로직을 추가해야하는 문제 발생
+
+3. Alert/Sheet : 1개의 뷰에 하나의 Alert/Sheet. 이전에 전환하려고 했던 프로젝트에서는 많은 수의 알럿이 존재했는데,
+이 알럿을 하나의 뷰에서 보여주기 위해서는, 알럿을 보여주기 위해 구조적으로 많은 부분을 수정했음
+
+4. 기타 : 시간... (비겁한 변명이십니다!!)
+
+---
+
+## 그래서?
+
+결론적으로, 위에서 이야기한 `UIStoryboard` 문제를 해결하기 위해 여러가지 방법을 사용했는데
+
+1. 파일 쪼개기
+각 기능별/카테고리별 스토리보드 파일을 여러개 만들어서 사용하면, 스토리보드내 뷰가 줄어들어 대부분의 문제점이 해결된다.
+
+2. 자동 autolayout 사용하지 않기
+의외(?)로 warnning/error 발생시, 자동생성 버튼을 누르는 개발자들이 존재했다!! 중복제거 및 죄적화를 위해서는 절대 사용해서는 안된다고 생각한다.
+
+2. cell 스토리보드 사용 금지
+cell의 경우, 특성상 반복되는 경우가 많은데 스토리보드 - 뷰에 넣는 경우 당연히 문제가 발생한다. (디자인 수정시, 일일히 찾아서 수정한다던가...)
+이때, `snapkit`을 사용해, 코드로 뷰를 구현하거나, `xib`로 뷰를 만들어서 불러오면 렉도 줄고 재사용도 편해진다.
+
+---
+
+## StoryboardHelper?
+
+### 문제
+
+1번의 경우, 스토리보드를 쪼개다보니 뷰 클래스 관리가 점점 햇갈리기 시작했다.
+
+```swift
+let storyboard = UIStoryboard(name: "Main", bundle: .main)
+let vc = storyboard.instantiateViewController(withIdentifier: "ViewController") as! ViewController
+```
+
+이런 코드의 경우, 단일 스토리보드에 단일 클래스라 큰 문제가 되지 않는다.
+
+하지만, 스토리보드 파일이 10개, 20개, 30개... 늘어난다면?
+
+> 특정 뷰를 instance 하려고 하는데, 어느 스토리보드에 생성했는지 햇갈리는 경우가 발생한다.
+
+두번째로, 
+
+```swift
+let storyboard = UIStoryboard(name: "Intro", bundle: .main)
+let vc = storyboard.instantiateViewController(withIdentifier: "IntroViewController") as! IntroViewController
+```
+
+Instance된 VC 객체를 불러오기 위해, 상당히 많은 코드를 작성해야한다.
+
+### 수정
+
+이걸 해결하기 위한 간단한 프로젝트가 [StoryboardHelper](https://github.com/manaes/StoryboardHelper)이다.
+
+1. SPM으로 프로젝트 추가
+```swift
+// swift-tools-version:4.0
+import PackageDescription
+
+let package = Package(
+    name: "YOUR_PROJECT_NAME",
+    dependencies: [
+        .package(url: "https://github.com/manaes/StoryboardHelper.git", from: "1.0.0"),
+    ]
+)
+```
+
+2. 스토리보드에 뷰 생성시, 클래스명과 동일하게 storyboard id를 입력해줌
+<left>
+  <img
+    src="https://github.com/user-attachments/assets/bacc43c3-4eaa-4a31-9aa9-e544ca0190c9"
+  />
+</left>
+
+3. 다음 코드를 사용해 VC 객체를 얻을 수 있음
+
+```swift
+try await Storyboard().controller(TestViewController.self)
+```
+
+끝!!
+
+---
+
+### 개선점
+
+1. 스토리보드에 `storyboard id`를 입력하지 않았다면, 현재는 실행시에 에러가 발생하게 되어있다.
+추후에는 [buildPlugin](https://developer.apple.com/videos/play/wwdc2022/110401/)을 사용해, prebuild 상태에서 에러를 체크하는 로직을 추가하려한다.
+
+2. swift package에서 Unit Test 진행시, 
+
+```swift
+swiftSettings: [
+    .define("UNIT_TESTING")
+]
+```
+설정이 정상적으로 되지 않았다. 
+
+```swift
+ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil
+```
+로 체크, 테스트 파일 경로를 지정해줬으나, 추후에는 `swiftSettings`값으로 변경해야함다.
+
+3. 미묘(?)하게 code coverage가 `98%`다. 몇줄 되지 않은 코드이니, `100%`를 노려봐야겠다.
