@@ -73,12 +73,34 @@ thumbnail: /posts/spam_killer/thumbnail.jpg
 - tuist 설치방법은 [여기](https://docs.tuist.dev/en/guides/quick-start/install-tuist)를 참조
 - [템플릿](https://github.com/manaes/Tuist_Modular_Template)를 사용해, 프로젝트를 구성함
 - 기존에 AppExtension은 `Core Layer`에 있었으나, 별도의 `AppExtension Layer`로 변경함
+- 아래 설명하는 코드는 [여기](https://github.com/manaes/CallBlock070-Tuist)에서 확인가능합니다.
+
+---
+
+## 간편설정
+
+1. [Tuist](https://docs.tuist.dev/en/guides/quick-start/install-tuist) 설치 
+2. [소스코드](https://github.com/manaes/CallBlock070-Tuist) Clone 후 해당폴더 이동
+3. organizationName, DEVELOPMENT_TEAM 변경
+```bash
+vim ./Plugin/EnvironmentPlugin/ProjectDescriptionHelpers/ProjectEnvironment.swift
+```
+4. AppGroup 아이디 변경
+```bash
+vim ./Projects/AppExtension/Sources/Support/CallBlocker.entitlements
+vim ./Projects/App/Support/app.entitlements
+```
+5. 프로젝트 생성
+```bash
+tuist generate
+```
+6. Xcode Run - `전화번호 발신자 확인`에서 CallBlocker extension On으로 변경
+7. `차단하기` 버튼을 누르고, 약 20분정도 저장 완료될때까지 기다리기
+8. 끝~!
 
 ---
 
 ## Package 설정
-
-(아래 설명하는 코드는 [여기](https://github.com/manaes/CallBlock070-Tuist)에서 확인가능합니다.)
 
 ### App Layer
 
