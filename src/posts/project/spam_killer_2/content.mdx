@@ -1,6 +1,6 @@
 ---
-title:  "[draft]스팸 문자/전화좀 그만해라 (2)"
-date: 2024-12-14
+title:  "스팸 문자/전화좀 그만해라 (3)"
+date: 2024-12-15
 desc: 지긋지긋한 스팸들...
 thumbnail: /posts/spam_killer/thumbnail.jpg
 ---
@@ -9,220 +9,199 @@ thumbnail: /posts/spam_killer/thumbnail.jpg
 
 ## 들어가며
 
-이전 포스트에 이어서, CallDirectory Extension을 사용해, 모든 070번호를 차단려고 한다.
+[이전 포스트](/blog/project/spam_killer_1)를 통해, 일부 070전화번호를 차단하는 방법을 포스팅했다.
 
-070으로 오는 전화번호는,
-070-xxxx-xxxx 형태로 모든 전화번호 경우의 수는 `일억개`이다.
-
-하나의 extension에서 차단할 수 있는 번호의 개수는 `2,000,000개`이다.
-1억개를 차단한다면, `50개의 extension`으로 커버가 가능하다는 이야기다.
-
-50개나 되는 extension target을 만들기는 귀찮으니, 
-일단은 동작확인을 위해 몇개의 extension을 만들어서 동작을 확인한 다음
-tuist를 사용해, 타겟을 만들어 사용하려고 한다.
+이전 방법은, 50개의 extension target을 하나씩 수동으로 추가해아한다는 아주아주 귀찮은 문제점이 존재한다.
+이번에는 tuist를 사용해, 비교적 간단하게 프로젝트를 생성해보려고 한다.
 
 ---
 
 ## 기본구조
 
-기능자체가 워낙 간단하다보니, MVVM Layer 중 일부만 사용해, 아레와 같이 만들었다.
-
 ```swift
-├── Block070
-│   ├── Application
-│   │   ├── AppDelegate.swift
-│   │   └── SceneDelegate.swift
-│   ├── Core
-│   │   └── CallBlocker
-│   │       ├── CallDirectoryHandler.swift
-│   │       └── Support Files
-│   │           ├── CallBlocker.entitlements
-│   │           └── Info.plist
-│   ├── Presentation
-│   │   ├── Base
-│   │   │   └── BasePresentation.swift
-│   │   └── Block070
-│   │       ├── Block070ViewController.swift
-│   │       └── Block070ViewModel.swift
-│   ├── Resources
-│   │   ├── Assets.xcassets
-│   │   │   ├── AccentColor.colorset
-│   │   │   │   └── Contents.json
-│   │   │   ├── AppIcon.appiconset
-│   │   │   │   └── Contents.json
-│   │   │   └── Contents.json
-│   │   └── Base.lproj
-│   │       └── LaunchScreen.storyboard
+...
+├── Projects
+│   ├── App
+│   │   ├── Project.swift
+│   │   ├── Resources
+│   │   │   ├── Assets.xcassets
+│   │   │   └── LaunchScreen.storyboard
+│   │   ├── Sources
+│   │   │   ├── Application
+│   │   │   │   ├── AppDelegate.swift
+│   │   │   │   └── SceneDelegate.swift
+│   │   │   └── Presentation
+│   │   │       ├── Base
+│   │   │       │   └── BasePresentation.swift
+│   │   │       └── Block070
+│   │   │           ├── Block070ViewController.swift
+│   │   │           └── Block070ViewModel.swift
+│   │   ├── Support
+│   │   │   ├── Info.plist
+│   │   │   └── app.entitlements
+│   │   └── Tests
+│   │       └── TargetTest.swift
+│   ├── AppExtension
+│   │   └── CallDirectory
+│   │       ├── Project.swift
+│   │       └── Sources
+│   │           ├── CallDirectoryHandler.swift
+│   │           └── Support
+│   │               └── CallBlocker.entitlements
+...
 │   ├── Shared
 │   │   ├── Config
-│   │   │   ├── AppConfig.swift
-│   │   │   └── CallBlockerConfig.swift
+│   │   │   ├── Config.xcodeproj
+│   │   │   ├── Project.swift
+│   │   │   └── Sources
+│   │   │       ├── AppConfig.swift
+│   │   │       └── CallBlockerConfig.swift
+│   │   ├── GlobalThirdPartyLibrary
+│   │   │   ├── GlobalThirdPartyLibrary.xcodeproj
+│   │   │   ├── Project.swift
+│   │   │   └── Sources
+│   │   │       └── ThirdPartyLibrary.swift
 │   │   └── Log
-│   │       └── LogExtension.swift
-│   └── Support Files
-│       ├── Block070.entitlements
-│       └── Info.plist
-├── Block070.xcodeproj
+│   │       ├── Log.xcodeproj
+│   │       ├── Project.swift
+│   │       └── Sources
+│   │           └── LogExtension.swift
+...
+├── Workspace.swift
 ```
 
-1. 각 extension별 동작은 비슷하기 때문에, `한개의 소스파일`을 만들어서 같이 사용함
-(source, info.plist, entitlements 파일등..)
-
-2. "전화 - 설정 - 전화 차단 및 발신자 확인"에서 사용함 (on)으로 전환시, 차단번호를 등록하게 되면 안됨
-  (등록되는 시간 + 여러개 on시 활성화 오류가 날 가능성이 높음)
-
-3. 2번과 앱에서 업데이트간의 동작 구분을 위해, `AppGroup`을 사용한 flag를 추가함
-
-4. 코드로 뷰를 추가하고, `SnapKit`으로 레이아웃을, `RxSwift`로 ViewController와 ViewModel을 연결했다.
-
-5. 예시는 Extension은 동작 확인을 위해 10개만 만들었는데, 혹시 50개 전부 필요한 경우라면 수동으로 추가됨
-	1. File - New - Target - CallDirectory Extension 추가
-
-	2. 프로젝트 설정 (이름, Bundle Identifier 등)
-	3. Build Settings - Info.plist / entitlments 파일 위치 수정 (같은 파일을 참조하기 위해)
-    ![](/posts/spam_killer/part2_2.png)
-    ![](/posts/spam_killer/part2_1.png)
-	4. 기본으로 추가된 CallDirctoryHandler.swift 파일 삭제
-	5. Build Phases - Combile Soruce에 다음 4개 파일 추가
-    ![](/posts/spam_killer/part2_3.png)
-	6. 메인 앱 (Block070) 설정 - Frameworks에 +버튼을 눌러, 추가된 타겟.appex 파일 추가
-    ![](/posts/spam_killer/part2_4.png)
+- tuist 설치방법은 [여기](https://docs.tuist.dev/en/guides/quick-start/install-tuist)를 참조
+- [템플릿](https://github.com/manaes/Tuist_Modular_Template)를 사용해, 프로젝트를 구성함
+- 기존에 AppExtension은 `Core Layer`에 있었으나, 별도의 `AppExtension Layer`로 변경함
 
 ---
 
-## 코드설명
+## Package 설정
 
-#### 앱 (Block070)에서 extension을 호출하는 부분
+(아래 설명하는 코드는 [여기](https://github.com/manaes/CallBlock070-Tuist)에서 확인가능합니다.)
 
-```swift
-extension Block070ViewModel {
-    private func block070(at idx: Int, withIdentifier identifier: String) async throws {
-        /// 동작시간을 확인하기 위한 변수
-        let startTime = Date()
+### App Layer
 
-        Log.debug("check enabled")
+```swift title="App - Package.swift"
+var extensionTargets: [Target] {
+    (1 ... 50).map { idx in
+        let productName = "CallBlocker\(String(format: "%02d", idx))"
+        let identifier = "\(env.organizationName).Block070.\(productName)"
 
-        /// Check enabled status
-        // swiftlint:disable:next line_length
-        let status = try await CXCallDirectoryManager.sharedInstance.enabledStatusForExtension(withIdentifier: identifier)
-        guard status == .enabled else {
-            Log.debug("\(identifier) is disabled or error occurred.")
-            errorEvent.accept(Block070Error.disabled(idx))
-            return
-        }
+        var spec = TargetSpec(
+            name: productName,
+            bundleId: identifier,
+            infoPlist: .extendingDefault(with: [
+                "CFBundleDisplayName": "$(PRODUCT_NAME)",
+                "NSExtension": [
+                    "NSExtensionPointIdentifier": "com.apple.callkit.call-directory",
+                    "NSExtensionPrincipalClass": "$(PRODUCT_MODULE_NAME).CallDirectoryHandler",
+                ],
+            ]),
+            sources: ["../AppExtension/CallDirectory/Sources/**"],
+            entitlements: .file(path: .relativeToAppExtension("CallDirectory/Sources/Support/CallBlocker.entitlements")),
+            dependencies: [
+                .shared(target: .Log),
+                .shared(target: .Config),
+            ]
+        )
 
-        Log.debug("Enabled \(identifier)")
-
-        /// Reload extension
-        try await CXCallDirectoryManager.sharedInstance.reloadExtension(withIdentifier: identifier)
-
-        /// Process
-        let process = Float(idx * 100) / Float(CallBlockerConfig.maxBlockManager)
-        processEvent.accept(process)
-
-        /// Calculate remaining time
-        let elapsedTime = abs(startTime.timeIntervalSinceNow)
-        let remainingTime = Int(elapsedTime * Double(CallBlockerConfig.maxBlockManager - idx))
-        remainingTimeEvent.accept(remainingTime)
-
-        Log.debug("Updated Complete \(idx) -> \(identifier) : \(elapsedTime)")
+        return .appExtension(spec: spec)
     }
 }
+
+...
+
+let project = Project(
+    name: env.name,
+    organizationName: env.organizationName,
+    settings: settings,
+    targets: targets + extensionTargets,
+    schemes: schemes
+)
+```
+- 각 extension을 별도의 모듈로 만들어서, 사용하는게 원칙임
+- 하나의 소스를 공유하는 50개 패키지를 만들지 않고, package에서 생성하는 형식으로 변경
+
+```swift title="App - Package.swift"
+var extensionDependencies: [TargetDependency] {
+    (1 ... 50).map { idx in
+        let productName = "CallBlocker\(String(format: "%02d", idx))"
+        return TargetDependency.target(name: productName)
+    }
+}
+
+let targets: [Target] = [
+    .target(
+        name: env.name,
+        destinations: env.destinations,
+        product: .app,
+        bundleId: "\(env.organizationName).\(env.name)",
+        deploymentTargets: env.deploymentTargets,
+        infoPlist: .file(path: "Support/Info.plist"),
+        sources: ["Sources/**"],
+        resources: ["Resources/**"],
+        entitlements: .file(path: .relativeToCurrentFile("Support/app.entitlements")), scripts: scripts,
+        dependencies: [
+            .shared(target: .GlobalThirdPartyLibrary),
+            .shared(target: .Log),
+            .shared(target: .Config)
+        ] + extensionDependencies
+    ),
+]
 ```
 
-1. `extension 상태가 사용가능한지` (전화 차단 및 발신자 확인에서 사용함으로 전환했는지) 확인함
-2. 1번이 가능하다면, `reloadExtension을 호출함` (extension - beginRequest 실행)
-3. 하나의 extension 업데이트가 `완료되면 다음 extension을 진행함`
-4. 진행단계마다, `UI 업데이트르 위한 PublishRelay accept`
+- 추가된 타겟을 불러와서 depencies에 추가함
 
-#### Extension에서 호출되는 부분
+### App Extension Layer
 
-```swift
-class CallDirectoryHandler: CXCallDirectoryProvider {
-    
-    // MARK: - Start Block 070
-    
-    override func beginRequest(with context: CXCallDirectoryExtensionContext) {
-        context.delegate = self
-        
-        if context.isIncremental {
-            context.removeAllBlockingEntries()
-        }
-        
-        /// 앱에서 차단하기 동작을 실행할때만, 070번호차단을 시작함
-        if AppConfig.isBlock {
-            addBlock070(with: context)
-        }
-        context.completeRequest()
-    }
-}
+- 모듈이 될 수 있는 타입은 static library 또는 framework인데, appExtension는 host로 app 타입만 가질 수 있어서 실제로 모듈을 생성해도 의미가 없음
+- 단순 소스 및 설정 파일들을 가지고 있는 저장소 개념
 
-// MARK: - Error
+### Shared Layer
 
-extension CallDirectoryHandler: CXCallDirectoryExtensionContextDelegate {
-    func requestFailed(for extensionContext: CXCallDirectoryExtensionContext, withError error: Error) {
-        Log.error("RequestFailed \(error)")
-    }
-}
-
-// MARK: - Add Block
-
-extension CallDirectoryHandler {
-    public func addBlock070(with context: CXCallDirectoryExtensionContext) {
-        guard
-            let indexString = Bundle.main.bundleIdentifier?.replacingOccurrences(of: CallBlockerConfig.identifierPrefix, with: ""),
-            let index = Int(indexString)
-        else {
-            return
-        }
-        
-        for number in 1..<CallBlockerConfig.maxBlockNumCount {
-            autoreleasepool {
-                
-                /// 1 ~ 2_000_000
-                /// (1 ~ 2_000_000) + 1 * 2_000_0000
-                /// (1 ~ 2_000_000) + 2 * 2_0000_000
-                /// ...
-                ///
-                let numberString = "+8270" + String(format: "%08d", number + ((index - 1) * CallBlockerConfig.maxBlockNumCount))
-                
-                /// 특정패턴 번호 제외
-                /// 000 포함하는 경우
-                if numberString.contains("000") { return }
-                
-                guard let relatedNumber = CXCallDirectoryPhoneNumber(numberString) else { return }
-                context.addBlockingEntry(withNextSequentialPhoneNumber: relatedNumber)
-            }
-        }
-    }
-}
+```swift title="Log - Package.swift"
+let project = Project.module(
+    name: ModulePaths.Shared.Log.rawValue,
+    targets: [
+        .implements(module: .shared(.Log))
+    ]
+)
 ```
-1. App에서 reloadExtension이 호출되면, `extension - beginRequest 함수가 호출`됨
-2. 기존에 저장된 데이터가 있는지 체크가 가능한데, 될 수 있으면 `다 지우고 다시 저장`하는걸 추천 
-3. 시스템에서 최대 할당되는 메모리는 `7MB`인데, 이를 초과하면 crash 후 재시작
-4. 전화번호는 `10,000개씩 저장`되며, 해당 로그는 consol앱에서 확인 가능함
-이때 프로세스 "com.apple.CallKit.CallDirectory"만 보기로 하면 쉽게 확인 수 있음
-![](/posts/spam_killer/part2_5.png)
+
+```swift title="Config - Package.swift"
+let project = Project.module(
+    name: ModulePaths.Shared.Config.rawValue,
+    targets: [
+        .implements(module: .shared(.Config))
+    ]
+)
+```
+
+```swift title="GlobalThirdPartyLibrary - Package.swift"
+let project = Project.module(
+    name: ModulePaths.Shared.GlobalThirdPartyLibrary.rawValue,
+    targets: [
+        .implements(
+            module: .shared(.GlobalThirdPartyLibrary),
+            product: .framework,
+            dependencies:
+                [
+                    .SPM.RxCocoa,
+                    .SPM.RxSwift,
+                    .SPM.SnapKit
+                ]
+        )
+    ]
+)
+```
+
+- 공용으로 사용할 모듈 정의
 
 ---
 
-#### 결과
+## 결과
 
-`전화 - 설정 - 전화 차단 및 발신자 확인`에서 모든 CallBlocker를 사용함으로 변경해준다.
-![](/posts/spam_killer/part2_6.png)
-
-앱을 실행해, `전체차단 버튼을 클릭`하면 다음과 같다.
-![](/posts/spam_killer/part2_7.png)
-
-extension 한개를 완료하는데, `아이폰 14프로맥스`를 기준으로 `약 20~25초`가 걸리는데,
-`50개`를 완료해야함으로, `50 *25 = 1250초 = 약 21분정도`가 걸릴 수 있다.
-
-20분만 투자하면 모든 070전화번호를 차단 가능하니, 나름 남는 장사라고 생각한다.
-
----
-
-#### 주의 
-
-- CallDirectory Extension 업데이트는 `thread safe하지 않음`으로, 하나씩 처리해야함
-- 업테이트 중 강제종료 같은 상황 발생시, CallDirectory DB가 깨질 수 있음 ([이전 포스트](/blog/project/spam_killer) 참조)
-- 많은 수의 전화번호를 사용하는 경우 최대한 메모리를 적게 쓰는 방법을 권장 (`autoreleasepool 필수`)
+- [이전 포스트](/blog/project/spam_killer_1)에 비해, 프로젝트 설정이 훨씬 간편하게 되었다.
+- 현재는 한개의 간단한 앱으로 구성했지만, 실제 프로젝트일 경우에는 App Layer를 Feature로 옮기면 된다. 
+- 드디어 070 전화로부터 해방이다!!
